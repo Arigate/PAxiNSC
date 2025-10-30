@@ -1,43 +1,49 @@
-import os
-import numpy as np
-from scipy.interpolate import interp1d
-from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
-import scipy.special as sp
-from scipy.optimize import root_scalar
 
-##################################################################################################
-# Import data
-Mp = 2.4e18  # GeV  reduced Planck mass
-filename = "Data/geffcbest.txt"
-data = np.loadtxt(filename, skiprows=0)
-T = data[:, 0]  # [GeV]
-xgstar = data[:, 1]  # [-]
-gstar = interp1d(T, xgstar, fill_value='extrapolate')
 
-filename = "Data/heffcbest.txt"
-data = np.loadtxt(filename, skiprows=0)
-T = data[:, 0]  # [GeV]
-xgstars = data[:, 1]  # [-]
-gstars = interp1d(T, xgstars, fill_value='extrapolate')
+from math import e
 
-filename = "Data/gstarcbest.txt"
-data = np.loadtxt(filename, skiprows=0)
-T = data[:, 0]  # [GeV]
-xfgstars = data[:, 1]  # [-]
-fgstars = interp1d(T, xfgstars, fill_value='extrapolate')
 
-data = np.genfromtxt('Data/Chipaper.csv', delimiter=',')  
-Tchi = data[:, 0]  # Temperature in GeV
-Chi = 10**data[:, 1]
-Chiint = interp1d(Tchi, Chi)
+def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,s,ps,CDM):
+        ##########################################################################################
+        # IMPORTS
+        import os
+        import numpy as np
+        from scipy.interpolate import interp1d
+        from scipy.integrate import solve_ivp
+        import matplotlib.pyplot as plt
+        from scipy.optimize import root_scalar
 
-##################################################################################################
+        ##################################################################################################
+        # Import data
+        Mp = 2.4e18  # GeV  reduced Planck mass
+        filename = "Data/geffcbest.txt"
+        data = np.loadtxt(filename, skiprows=0)
+        T = data[:, 0]  # [GeV]
+        xgstar = data[:, 1]  # [-]
+        gstar = interp1d(T, xgstar, fill_value='extrapolate')
 
-def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
+        filename = "Data/heffcbest.txt"
+        data = np.loadtxt(filename, skiprows=0)
+        T = data[:, 0]  # [GeV]
+        xgstars = data[:, 1]  # [-]
+        gstars = interp1d(T, xgstars, fill_value='extrapolate')
+
+        filename = "Data/gstarcbest.txt"
+        data = np.loadtxt(filename, skiprows=0)
+        T = data[:, 0]  # [GeV]
+        xfgstars = data[:, 1]  # [-]
+        fgstars = interp1d(T, xfgstars, fill_value='extrapolate')
+
+        data = np.genfromtxt('Data/Chipaper.csv', delimiter=',')  
+        Tchi = data[:, 0]  # Temperature in GeV
+        Chi = 10**data[:, 1]
+        Chiint = interp1d(Tchi, Chi)
+
+        ##################################################################################################
+
         # 1 NON-STANDARD BACKGROUND:
         # WHO IS DOMINATING INITIALLY? Kappa small implies RD
-        import numpy as np
+
         kappa = 1e-3
         H_RH = (Tend**2) * np.pi * np.sqrt((gstar(Tend) / 10)) / (3 * Mp)
         # Temperature:
@@ -141,7 +147,7 @@ def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
                 print(r'$\Gamma=\Gamma(T)$  - $m(T)=m_a$')
         if nn == 0:
                 print(r'$\Gamma=constant$ - $m(T)=m_a$')
-        import matplotlib.pyplot as plt
+
         # INTERPOLATIONS
         rangs=R[(R>=R_eq) & (R<=R_RH)]
         mask = (R >= R_eq) & (R <= R_RH)
@@ -264,7 +270,7 @@ def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
         fluidaprox = True
         if fluidaprox:
                 with np.errstate(divide='ignore', invalid='ignore'):
-                        import numpy as np
+
 
                  
                         wa = P_a / rho_a
@@ -310,7 +316,9 @@ def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
         #cad2[mask_post_osc] = 0
         wa[R>=R_osc]=0
         cad2=wa
-
+        if CDM:
+                wa=np.zeros_like(wa)
+                cad2=np.zeros_like(cad2)
 
         Temp = Temp
         GG = Gamma(R, nn, kk)
@@ -323,9 +331,7 @@ def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
         def xi(R, Rc, R_RH, x, width=0.05):
                 R = np.asarray(R)
                 x2 = 8 * x / (2 * x + 3)
-                s1 = expit((R - Rc) / (width * Rc))
-                s2 = expit((R - R_RH) / (width * R_RH))
-
+      
                 mask1= R < Rc
                 mask2 = (R >= Rc) & (R <= R_RH)
                 mask3 = R > R_RH
@@ -349,153 +355,153 @@ def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
         theta_ini = theta / np.pi
 
 
-        import os
-        import matplotlib.pyplot as plt
-        plt.rcParams['text.usetex'] = True
-        plt.rcParams['font.family'] = 'serif'
-        plt.rcParams.update({
-        "text.usetex": True,
-        "axes.labelsize": 22,      
-        "xtick.labelsize": 18,    
-        "ytick.labelsize": 18,   
-        "legend.fontsize": 18,     
-        "axes.titlesize": 20,   
-        "font.size": 18          
-        })
-        folder = "GammaConstant" if nn == 0 else "GammaT"
-        os.makedirs(folder, exist_ok=True)
-        if nn != 0:
-                output_dirs = "PLOTS_TESIS"
-                os.makedirs(output_dirs, exist_ok=True)
-                plt.figure(figsize=(8, 6))
-
-              
-                blus = '#0033A0'  
-                orang = '#FF9900'  
-
-                plt.plot(Raux / R_RH, (-x * np.gradient(Raux, Temp)) * (Temp / Raux) / 4,
-                        label='Numerical', color=blus, lw=2)
-                plt.plot(Raux / R_RH, x_i(Raux),
-                        label='Analytical', color=orang, lw=2, linestyle='--')
-
-                plt.axvline(Rc / R_RH, linestyle='--', color='red', label=r'$R_c$')
-                plt.axvline(1, linestyle='--', color='green', label=r'$R_{\mathrm{RH}}$')
-
-                plt.ylabel(r'$-x\frac{T}{R}\frac{dR}{dT}$', fontsize=20)
-                plt.xlabel(r'$R/R_{\mathrm{RH}}$', fontsize=16)
-                plt.xlim(0.009, 1.75)
-                plt.ylim(-5, ((-x * np.gradient(Raux, Temp)) * (Temp / Raux) / 4)[np.argmin(np.abs(Raux - R_RH / 1.09))])
-
-                plt.legend(fontsize=16, loc='upper right')
-                plt.tight_layout()
-                filename = "xi_gamma.pdf" 
-                plt.savefig(os.path.join(output_dirs, filename), format="pdf")
-
-                plt.close()
-      
-        plot_limits = {
-        'theta': {'x': (1 / 2,  (R_RH/R_osc)*Approx)},
-        
-        'density': {
-                'x': None,
-                'y': None
-        },
-        
-        'eos': {'x': (1/ 2, (R_RH/R_osc)*Approx)},
-        
-        'sound': {
-                'x': (1/ 1.1,  (R_RH/R_osc)*3),
-                'y': (0, 6)
-        },
-        
-        'rates': { 
-                'x': (None),
-                'y': None  
-        }
-        }
-
-   
-        def make_plot(save, show, filename='', xlim=None, ylim=None, title='', ylabel='', data_fn=None):
-                plt.figure(figsize=(7, 5))
-                data_fn()
-                plt.axvline(1, linestyle='--', color='red', label=r'$R_{\mathrm{osc}}$')
-                plt.xlabel(r'$R/R_{\mathrm{osc}}$')
-                plt.ylabel(ylabel)
-                plt.xscale('log')
-                if xlim:
-                        plt.xlim(*xlim)
-                if ylim:
-                        plt.ylim(*ylim)
-                plt.legend(fontsize=16)
-                plt.title(title)
-                plt.tight_layout()
-                if save:
-                        plt.savefig(f"GammaConstant/{filename}.pdf")
-                if show:
-                        plt.show()
-                else:
-                        plt.close()
-
-      
-        def plot_all(save, show, limits=plot_limits):
-        # theta(R)
-                make_plot(
-                        save=save, show=show, filename='theta',
-                        xlim=limits['theta']['x'],
-                        title=r'', ylabel=r'$\theta(R)$',
-                        data_fn=lambda: plt.plot(Rs/R_osc, axo, label=r'$\theta$', lw=2)
-                )
-
-                # Gamma, Hubble, ma/3
-                make_plot(
-                        save=save, show=show, filename='background_rates',
-                        xlim=limits['rates']['x'], ylim=limits['rates']['y'],
-                        title='Decay, Hubble and Axion mass', ylabel='Rates',
-                        data_fn=lambda: (
-                        plt.loglog(R, GG, label=r'$\Gamma$', lw=2),
-                        plt.loglog(R, Hub, label=r'$H$', lw=2),
-                        plt.loglog(R, ma / 2, label=r'$m_a/2$', lw=2)
-                        )
-                )
-
-                # Densities
-                make_plot(
-                        save=save, show=show, filename='densities',
-                        xlim=limits['density']['x'], ylim=limits['density']['y'],
-                        title='Density evolution', ylabel=r'$\rho_i$',
-                        data_fn=lambda: (
-                        plt.loglog(R, rho_r, label=r'$\rho_r$', lw=2),
-                        plt.loglog(R, rho_phi, label=r'$\rho_\phi$', lw=2),
-                        plt.loglog(R, rho_a, label=r'$\rho_a$', lw=2),
-                        plt.axvline(R_eq/R_osc, linestyle='--', color='blue', label=r'$R_{\mathrm{eq}}$'),
-                        plt.axvline(R_RH/R_osc, linestyle='--', color='green', label=r'$R_{\mathrm{RH}}$'),
-                        plt.axvline(Rc/R_osc, linestyle='--', color='orange', label=r'$R_{\mathrm{c}}$')),
-                
-                )
-
-                make_plot(
-                save=save, show=show, filename='equation_of_state',
-                xlim=limits['eos']['x'],
-                title='',
-                ylabel=r'$\omega_a$',
-                data_fn=lambda: (
-                        plt.axhline(0, linestyle='--', color='black', alpha=0.4, zorder=1),  # Más opaca, sin label
-                        
-                        plt.plot(R, wass, label=r'$\omega_a$'),
-                        plt.plot(R, wa, linestyle="--", label=r'$\langle \omega_a \rangle$')
-                )
-                )
-
-                # Sound speed
-                make_plot(
-                        save=save, show=show, filename='sound_speed',
-                        xlim=limits['sound']['x'], ylim=limits['sound']['y'],
-                        title=r'Adiabatic sound speed $c_a^2$', ylabel=r'$c_a^2$',
-                        data_fn=lambda: plt.plot(R, cad2, linestyle='--', color='red', label=r'$c_a^2$')
-                )
 
 
-        plot_all(save=s, show=p, limits=plot_limits)
+
+
+        PLOT=ps
+        if PLOT!=1:
+                print("You chose not to plot background quantities.")
+        else:
+                def ploting_background_quantities( show):
+                        # If you dont have LaTeX installed, comment the following lines:
+                        plt.rcParams['text.usetex'] = True
+                        plt.rcParams['font.family'] = 'serif'
+                        plt.rcParams.update({
+                                "text.usetex": True,
+                                "axes.labelsize": 22,
+                                "xtick.labelsize": 18,
+                                "ytick.labelsize": 18,
+                                "legend.fontsize": 18,
+                                "axes.titlesize": 20,
+                                "font.size": 18
+                        })
+
+                        # --- Plot especial para nn != 0 ---
+                        if nn != 0:
+                                output_dirs = "PLOTS_TESIS"
+                                os.makedirs(output_dirs, exist_ok=True)
+                                plt.figure(figsize=(8, 6))
+
+                                blus  = '#0033A0'
+                                orang = '#FF9900'
+
+                                plt.plot(Raux / R_RH, (-x * np.gradient(Raux, Temp)) * (Temp / Raux) / 4,
+                                        label='Numerical', color=blus, lw=2)
+                                plt.plot(Raux / R_RH, x_i(Raux),
+                                        label='Analytical', color=orang, lw=2, linestyle='--')
+
+                                plt.axvline(Rc / R_RH, linestyle='--', color='red',   label=r'$R_c$')
+                                plt.axvline(1,          linestyle='--', color='green', label=r'$R_{\mathrm{RH}}$')
+
+                                plt.ylabel(r'$-x\frac{T}{R}\frac{dR}{dT}$', fontsize=20)
+                                plt.xlabel(r'$R/R_{\mathrm{RH}}$',          fontsize=16)
+                                plt.xlim(0.009, 1.75)
+                                plt.ylim(-5, ((-x * np.gradient(Raux, Temp)) * (Temp / Raux) / 4)
+                                        [np.argmin(np.abs(Raux - R_RH / 1.09))])
+
+                                plt.legend(fontsize=16, loc='upper right')
+                                plt.tight_layout()
+                                filename = "xi_gamma.pdf"
+                                plt.savefig(os.path.join(output_dirs, filename), format="pdf")
+                                plt.close()
+
+                        # --- Límites de ejes para los plots de background ---
+                        plot_limits = {
+                                'theta':   {'x': (1 / 2, (R_RH / R_osc) * Approx)},
+                                'density': {'x': None, 'y': None},
+                                'eos':     {'x': (1 / 2, (R_RH / R_osc) * Approx)},
+                                'sound':   {'x': (1 / 1.1, (R_RH / R_osc) * 3), 'y': (0, 6)},
+                                'rates':   {'x': (None), 'y': None}
+                        }
+
+                        def make_plot( show, filename='', xlim=None, ylim=None, title='', ylabel='', data_fn=None):
+                                plt.figure(figsize=(7, 5))
+                                if data_fn is not None:
+                                        data_fn()
+                                plt.axvline(1, linestyle='--', color='red', label=r'$R_{\mathrm{osc}}$')
+                                plt.xlabel(r'$R/R_{\mathrm{osc}}$')
+                                plt.ylabel(ylabel)
+                                plt.xscale('log')
+                                if xlim:
+                                        plt.xlim(*xlim)
+                                if ylim:
+                                        plt.ylim(*ylim)
+                                plt.legend(fontsize=16)
+                                plt.title(title)
+                                plt.tight_layout()
+                                
+
+                                if show:
+                                        outdir = "GammaConstant" if nn == 0 else "GammaT"
+                                        os.makedirs(outdir, exist_ok=True)
+                                        plt.savefig(os.path.join(outdir, f"{filename}.pdf"))
+                                        plt.show()
+                                else:
+                                        plt.close()
+
+                        def plot_all( show, limits=plot_limits):
+                                # theta(R)
+                                make_plot(
+                                show=show, filename='theta',
+                                xlim=limits['theta']['x'],
+                                title=r'', ylabel=r'$\theta(R)$',
+                                data_fn=lambda: plt.plot(Rs / R_osc, axo, label=r'$\theta$', lw=2)
+                                )
+
+                                # Gamma, Hubble, ma/2
+                                make_plot(
+                                show=show, filename='background_rates',
+                                xlim=limits['rates']['x'], ylim=limits['rates']['y'],
+                                title='Decay, Hubble and Axion mass', ylabel='Rates',
+                                data_fn=lambda: (
+                                        plt.loglog(R, GG, label=r'$\Gamma$', lw=2),
+                                        plt.loglog(R, Hub, label=r'$H$',     lw=2),
+                                        plt.loglog(R, ma / 2, label=r'$m_a/2$', lw=2)
+                                )
+                                )
+
+                                # Densities
+                                make_plot(
+                                show=show, filename='densities',
+                                xlim=limits['density']['x'], ylim=limits['density']['y'],
+                                title='Density evolution', ylabel=r'$\rho_i$',
+                                data_fn=lambda: (
+                                        plt.loglog(R, rho_r,  label=r'$\rho_r$',  lw=2),
+                                        plt.loglog(R, rho_phi,label=r'$\rho_\phi$', lw=2),
+                                        plt.loglog(R, rho_a,  label=r'$\rho_a$',  lw=2),
+                                        plt.axvline(R_eq / R_osc, linestyle='--', color='blue',  label=r'$R_{\mathrm{eq}}$'),
+                                        plt.axvline(R_RH / R_osc, linestyle='--', color='green', label=r'$R_{\mathrm{RH}}$'),
+                                        plt.axvline(Rc   / R_osc, linestyle='--', color='orange',label=r'$R_{\mathrm{c}}$')
+                                )
+                                )
+
+                                # Equation of state
+                                make_plot(
+                                show=show, filename='equation_of_state',
+                                xlim=limits['eos']['x'],
+                                title='', ylabel=r'$\omega_a$',
+                                data_fn=lambda: (
+                                        plt.axhline(0, linestyle='--', color='black', alpha=0.4, zorder=1),
+                                        plt.plot(R, wass, label=r'$\omega_a$'),
+                                        plt.plot(R, wa,  linestyle="--", label=r'$\langle \omega_a \rangle$')
+                                )
+                                )
+
+                                # Sound speed
+                                make_plot(
+                                show=show, filename='sound_speed',
+                                xlim=limits['sound']['x'], ylim=limits['sound']['y'],
+                                title=r'Adiabatic sound speed $c_a^2$', ylabel=r'$c_a^2$',
+                                data_fn=lambda: plt.plot(R, cad2, linestyle='--', color='red', label=r'$c_a^2$')
+                                )
+
+                        plot_all( show, limits=plot_limits)
+        if PLOT==1:
+                ploting_background_quantities( show=True)
+
+
+
 
         R=Raux
 
@@ -543,5 +549,7 @@ def axion_backsolver_ma(Tend, nn, kk, prop, theta, Approx, fa,p,s):
         "AxionFluid": AxionFluid,
         "ScaleFactors": ScaleFactors
         }
+
+        print(R[-1]/R_RH)
         return dat
 
