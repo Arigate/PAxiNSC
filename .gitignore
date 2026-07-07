@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+.venv/
+venv/
+env/
+
+*.npz
+*.npy
+*.h5
+*.hdf5
+
+Sim_Data/*
+!Sim_Data/.gitkeep
+
+.DS_Store
