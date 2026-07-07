@@ -160,8 +160,8 @@ def PertEMD_noAX(rho_phi, rho_r, GG, R, k):
         [Rini, Rmax],
         Y0,
         method="Radau",
-        atol=1e-10,
-        rtol=1e-10,
+        atol=1e-13,
+        rtol=1e-13,
         t_eval=R,
         args=(k, R, rho_phi, rho_r, GG)
     )
