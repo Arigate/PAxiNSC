@@ -1,24 +1,6 @@
 __pycache__/
-*.py[cod]
+*.pyc
 .ipynb_checkpoints/
-
-.venv/
-venv/
-env/
-
-*.npz
-*.npy
-*.h5
-*.hdf5
-
-Sim_Data/*
-!Sim_Data/.gitkeep
-
+Sim_Data/
+notebooks/Plots/
 .DS_Store
-
-# WKB reference data - do not upload
-
-# WKB reference data: only keep selected MC files
-REF/WKB_QCD_data/*
-!REF/WKB_QCD_data/qcd_mc.npz
-!REF/WKB_QCD_data/qcd_mc_extra.npz
