@@ -7,36 +7,27 @@ import numpy as np
 from tqdm import tqdm
 
 from Axi_WKB import integrate_wkb
-from NSC_cosmo import background, PertEMD_noAX, primordial_phi_ini, gstar, gstars
+from NSC_cosmo import background, PertEMD_noAX, primordial_phi_ini, gstar, gstars, dgstar, dgstars
 from QCD_axions import NSC_PERT_axi
 
-output_root = Path("Sim_Data/QCD_MC")
-summary_file = output_root / "qcd_mc.npz"
-
-T_RH_min = 0.005
-T_RH_max = 0.300
-n_T_RH = 48
-
-
-theta_ini = 1.1313708512275915
-dtheta_ini = 0.0
-cpu_fraction = 0.20
-
-Tini = 3e1
-ep = 1e5
-maxi = 95.0
-
-kappa_min = 1.0
-kappa_max = 250.0
-n_k_modes = 300
-
-T_chi_end = 0.0101
-num_extension = 1.09
-x_num_min = 10.0
-
-x_match_wkb = 90.0
-n_wkb = 200_000
-
+output_root=Path("Sim_Data/QCD_MC")
+summary_file=output_root/"qcd_mc.npz"
+T_RH_arr=np.array([0.005,0.0083666,0.014,0.015,0.0160568416,0.0171881441,0.0183991538,0.0196954865,0.0210831538,0.0225685907,0.0241586857,0.0258608126,0.0276828647,0.0296332916,0.0317211379,0.0339560857,0.0363484993,0.038909473,0.0416508829,0.0445854419,0.0477267585,0.0510894001,0.0546889602,0.0585421314,0.0626667819,0.0670820393,0.0718083786,0.0768677172,0.0822835172,0.0880808934,0.0942867301,0.100929806,0.108040927,0.11565307,0.123801535,0.132524109,0.141861241,0.151856232,0.162555431,0.174008453,0.186268411,0.199392158,0.213440553,0.228478743,0.244576465,0.261808371,0.280254369,0.3],dtype=float)
+ma0_arr=np.array([4.69858711e-18,9.33410403e-18,1.85429143e-17,2.03167614e-17,2.22409936e-17,2.43462710e-17,2.66491799e-17,2.91678002e-17,3.19090032e-17,3.48983169e-17,3.81374787e-17,4.16677945e-17,4.55123729e-17,4.97041717e-17,5.42741860e-17,5.92594555e-17,6.46964171e-17,7.06284609e-17,7.71009372e-17,8.41672941e-17,9.18841822e-17,1.00312040e-16,1.09517448e-16,1.19573348e-16,1.30559077e-16,1.42561810e-16,1.55673986e-16,1.69988419e-16,1.85604124e-16,2.02627901e-16,2.21175245e-16,2.41358776e-16,2.63383480e-16,2.87713391e-16,3.13425039e-16,3.40290991e-16,3.68522285e-16,3.97853588e-16,4.28522264e-16,4.61153520e-16,4.96546505e-16,5.35373918e-16,5.78218036e-16,6.25384942e-16,6.77244590e-16,7.34212436e-16,7.96750619e-16,8.65422242e-16],dtype=float)
+theta_ini=1.1313708512275915
+dtheta_ini=0.0
+cpu_fraction=0.3
+Tini=3e1
+ep=1e5
+maxi=95.0
+kappa_min=25
+kappa_max=150
+n_k_modes=250
+T_chi_end=0.0101
+num_extension=1.09
+x_num_min=10.0
+x_match_wkb=90.0
+n_wkb=200_000
 
 def get_x_eq(T_RH):
     T_eq = 0.79e-9
@@ -70,8 +61,7 @@ def axion_mode_worker(args, rho_phi, rho_r, Hub, Temp, R, ma0, fa):
     return mode_idx, float(out[2][-1]), float(out[3][-1]), bg
 
 
-def run_point(T_RH, kappas, cores):
-    ma0 = qcd_ma0(T_RH)
+def run_point(T_RH, ma0, kappas, cores):
     ma0_ev = ma0 * 1e9
     fa = 5.69e-3 / ma0
 
@@ -80,8 +70,8 @@ def run_point(T_RH, kappas, cores):
     H_RH = k_RH / R_RH
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        c_r2 = dP_r_dR / drho_r_dR
-        omega_r = P_r / rho_r
+        c_r2 = (1.0 / 3.0) * (16.0 * gstars(Temp) - 12.0 * gstar(Temp) + Temp * (4.0 * dgstars(Temp) - 3.0 * dgstar(Temp))) / (4.0 * gstar(Temp) + Temp * dgstar(Temp))
+        omega_r = (1.0 / 3.0) * (4.0 * gstars(Temp) - 3.0 * gstar(Temp)) / gstar(Temp)
 
     k_values = kappas * k_RH
     Phi_ini = primordial_phi_ini(kappas, T_RH, H_RH, float(gstars(T_RH)))
@@ -97,7 +87,7 @@ def run_point(T_RH, kappas, cores):
     dPhi_dR = np.asarray([item[2] for item in noax])
 
     idx = np.argsort(Temp)
-    x_chi_end = float(np.interp(T_chi_end, Temp[idx], x[idx]))
+    x_chi_end = float(np.interp(T_chi_end, Temp[::-1], x[::-1]))
     x_num_end = max(x_num_min, num_extension * x_chi_end)
     num_mask = x <= x_num_end
 
@@ -156,8 +146,7 @@ def run_point(T_RH, kappas, cores):
 def run():
     available = cpu_count() or 1
     cores = max(1, int(available * cpu_fraction))
-    T_RH_arr = np.logspace(np.log10(T_RH_min), np.log10(T_RH_max), n_T_RH)
-    ma0_arr = np.array([qcd_ma0(T_RH) * 1e9 for T_RH in T_RH_arr])
+    ma0_ev_arr = ma0_arr * 1e9
     kappas = np.logspace(np.log10(kappa_min), np.log10(kappa_max), n_k_modes)
 
     n_scan = len(T_RH_arr)
@@ -174,18 +163,17 @@ def run():
     k_RH = np.full(n_scan, np.nan)
 
     print(f"CPU cores: {cores}/{available} (~{100 * cpu_fraction:.0f}%)")
-    print(f"T_RH grid: {T_RH_min * 1e3:g} - {T_RH_max * 1e3:g} MeV ({n_T_RH} log-spaced points)")
+    print(f"T_RH grid: fixed OLD theta=1.13137 scan ({n_scan} points, {T_RH_arr[0] * 1e3:g}-{T_RH_arr[-1] * 1e3:g} MeV)")
     print(f"kappa grid: {kappa_min:g} - {kappa_max:g} ({n_k_modes} modes)")
     print(f"WKB grid: {n_wkb} points, x_match={x_match_wkb:g}")
     print()
 
-    for i, T_RH in enumerate(T_RH_arr):
-        delta_a_eq[i], x_eq[i], x_ic[i], R_eq[i], kappa_J_eq[i], k_osc[i], k_l[i], kappa_osc[i], kappa_l[i], R_RH[i], k_RH[i] = run_point(T_RH, kappas, cores)
+    for i, (T_RH, ma0) in enumerate(zip(T_RH_arr, ma0_arr)):
+        delta_a_eq[i], x_eq[i], x_ic[i], R_eq[i], kappa_J_eq[i], k_osc[i], k_l[i], kappa_osc[i], kappa_l[i], R_RH[i], k_RH[i] = run_point(T_RH, ma0, kappas, cores)
 
     inputs = {
-        "T_RH_min": T_RH_min,
-        "T_RH_max": T_RH_max,
-        "n_T_RH": n_T_RH,
+        "scan": "fixed OLD theta=1.1313708512275915",
+        "n_T_RH": len(T_RH_arr),
         "theta_ini": theta_ini,
         "dtheta_ini": dtheta_ini,
         "Tini": Tini,
@@ -206,7 +194,7 @@ def run():
     np.savez_compressed(
         summary_file,
         T_RH=T_RH_arr,
-        ma0_ev=ma0_arr,
+        ma0_ev=ma0_ev_arr,
         kappas=kappas,
         delta_a_eq=delta_a_eq,
         x_eq=x_eq,
@@ -228,3 +216,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+
